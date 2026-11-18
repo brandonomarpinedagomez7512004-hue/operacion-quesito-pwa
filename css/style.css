@@ -1,0 +1,49 @@
+:root{--fondo:#FFF8E7;--cafe:#5D4037;--naranja:#FFA726;--verde:#66BB6A;--crema:#FFE0B2;--blanco:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--cafe);font-family:"Trebuchet MS",system-ui,sans-serif;line-height:1.5}
+#app{max-width:480px;margin:0 auto;min-height:100vh;padding:24px;display:flex;flex-direction:column;align-items:center}
+h1,h2{text-align:center;margin:0 0 12px}
+h1{font-size:30px}h2{font-size:27px}
+.sub{color:var(--naranja);font-weight:600;font-size:18px;text-align:center}
+.texto{text-align:center;margin:12px 0 28px}
+.logo{width:100%;border-radius:20px;margin-bottom:16px}
+.card{width:100%;background:var(--blanco);border-radius:20px;padding:20px;box-shadow:0 2px 6px rgba(0,0,0,.15);margin-bottom:20px}
+.card h3{margin:0 0 12px;font-size:22px;color:var(--naranja)}
+.card p{margin:0 0 12px;white-space:pre-line}
+.personaje{text-align:center}
+.personaje h3{color:var(--cafe);font-size:24px}
+.personaje img,.escenario{width:100%;border-radius:16px;background:var(--crema)}
+.personaje img{aspect-ratio:1;object-fit:cover}
+.btn{display:block;width:100%;padding:14px;margin-top:14px;border-radius:16px;background:var(--naranja);color:#fff;text-align:center;text-decoration:none;font-size:16px}
+.btn.verde{background:var(--verde)}.btn.cafe{background:var(--cafe)}
+.btn:focus-visible{outline:3px solid var(--cafe);outline-offset:2px}
+.fila{display:flex;align-items:center;gap:12px}
+.medalla{width:44px;font-size:26px}
+.jugador{flex:1;font-weight:600}
+.pts{color:var(--naranja);font-weight:700}
+.meta{font-size:14px;margin-top:8px}
+.barra{height:10px;background:var(--crema);border-radius:8px;overflow:hidden;margin-top:6px}
+.barra span{display:block;height:100%;background:var(--verde)}
+
+/* ---- Diseño adaptable (celular, tableta y computadora) ---- */
+.barra-sup{position:sticky;top:0;z-index:5;background:var(--naranja);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 24px;padding:10px 24px}
+.marca{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:20px;text-decoration:none}
+.marca img{border-radius:50%}
+.barra-sup nav{display:flex;flex-wrap:wrap;gap:6px}
+.barra-sup nav a{color:#fff;text-decoration:none;padding:8px 14px;border-radius:12px}
+.barra-sup nav a[aria-current]{background:var(--cafe)}
+.barra-sup a:focus-visible{outline:3px solid #fff;outline-offset:2px}
+#app{max-width:1100px;align-items:stretch}
+.hero{display:grid;gap:24px;align-items:center}
+.hero .logo{margin:0}
+.hero-txt{text-align:center}
+.hero-txt .btn{margin-top:12px}
+.grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.grid .card{margin:0}
+.angosto{width:100%;max-width:760px;margin:0 auto}
+@media (min-width:860px){
+  #app{padding:40px 24px}
+  .hero{grid-template-columns:1.1fr 1fr}
+  .hero-txt,.hero-txt h1,.hero-txt .sub,.hero-txt .texto{text-align:left}
+  .grid-r{grid-template-columns:repeat(2,1fr)}
+}
