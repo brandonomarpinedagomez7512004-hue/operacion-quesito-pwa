@@ -31,3 +31,12 @@ async function obtenerPartidas() {
   const db = await dbPromise;
   return await db.getAll(STORE_NAME);
 }
+
+// Eliminar una partida por su id (clave primaria)
+async function eliminarPartida(id) {
+  const db = await dbPromise;
+  const tx = db.transaction(STORE_NAME, 'readwrite');
+  await tx.objectStore(STORE_NAME).delete(id);
+  await tx.done;
+  console.log('[IndexedDB] Partida eliminada:', id);
+}

@@ -1,5 +1,5 @@
 // sw.js - Service Worker: precaché del App Shell + Cache First
-const CACHE_NAME = 'quesito-shell-v3'; // sube la versión (v2, v3...) cada vez que cambies archivos
+const CACHE_NAME = 'quesito-shell-v4'; // sube la versión (v2, v3...) cada vez que cambies archivos
 
 const IDB_CDN = 'https://cdn.jsdelivr.net/npm/idb@7/build/umd.js'; // librería idb (se guarda aparte)
 
