@@ -1,14 +1,16 @@
 // sw.js - Service Worker: precaché del App Shell + Cache First
-const CACHE_NAME = 'quesito-shell-v2'; // sube la versión (v2, v3...) cada vez que cambies archivos
+const CACHE_NAME = 'quesito-shell-v3'; // sube la versión (v2, v3...) cada vez que cambies archivos
+
+const IDB_CDN = 'https://cdn.jsdelivr.net/npm/idb@7/build/umd.js'; // librería idb (se guarda aparte)
 
 const ASSETS = [
-  './', './index.html', './css/style.css', './js/app.js', './manifest.json',
+  './', './index.html', './css/style.css', './js/app.js', './js/db.js', './manifest.json',
   './images/logo.webp', './images/escenario.webp', './images/chetes.webp',
   './images/polvoron.webp', './images/lulu.webp', './images/icon-192.png', './images/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS).then(() => c.add(IDB_CDN).catch(e => console.warn('SW: no se guardó idb', e.message)))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {
