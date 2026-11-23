@@ -113,16 +113,42 @@ function iniciarRanking() {
       fecha: new Date().toISOString()
     };
     if (!partida.jugador) return;
-    await guardarPartida(partida);   // Create: se guarda en IndexedDB
+
+    // 1. Guardamos localmente en el ranking para actualización visual inmediata
+    await guardarPartida(partida);
     e.target.reset();
-    await cargarRanking();           // la pantalla se actualiza leyendo la base
+    await cargarRanking();
+
+    // 2. Verificamos soporte de Background Sync y Service Worker
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        // Guardamos en la cola temporal de IndexedDB
+        await guardarPartidaSincronizacion(partida);
+        // Registramos la etiqueta de sincronización
+        await registration.sync.register('sync-nuevas-partidas');
+        console.log('[App] Tarea de Background Sync registrada con éxito.');
+      } catch (error) {
+        console.warn('[App] Error al registrar Sync, intentando envío normal:', error);
+        enviarAlServidor(partida);
+      }
+    } else {
+      // Fallback para navegadores que no soportan SyncManager
+      enviarAlServidor(partida);
+    }
   });
+
   document.getElementById('lista-ranking').addEventListener('click', async e => {
     const boton = e.target.closest('.borrar');
     if (!boton) return;
     await eliminarPartida(boton.dataset.id); // Delete
     await cargarRanking();
   });
+}
+
+async function enviarAlServidor(partida) {
+  // Simulación de envío a un endpoint backend o Firebase
+  console.log('[API] Enviando partida al servidor en tiempo real:', partida);
 }
 
 function mostrar() {
