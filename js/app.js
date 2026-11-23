@@ -10,16 +10,6 @@ const personajes = [
   { nombre: 'Señora Lulú', img: 'lulu', descripcion: 'La encargada del famoso puesto de quesadillas. Es el destino final de Chetes y lo espera al terminar su aventura.' }
 ];
 
-// Datos de prueba (después vendrán de IndexedDB). progreso = % del nivel, tiempo = segundos
-const partidas = [
-  { jugador: 'ChetesFan', puntuacion: 1500, progreso: 100, tiempo: 312 },
-  { jugador: 'QuesitoMaster', puntuacion: 1200, progreso: 85, tiempo: 275 },
-  { jugador: 'Polvoron123', puntuacion: 950, progreso: 70, tiempo: 240 },
-  { jugador: 'LuluGamer', puntuacion: 800, progreso: 55, tiempo: 198 },
-  { jugador: 'Ratoncito', puntuacion: 650, progreso: 40, tiempo: 160 },
-  { jugador: 'SuperQueso', puntuacion: 500, progreso: 25, tiempo: 95 }
-];
-
 const volver = ''; // la barra superior ya navega entre pantallas
 
 const pantallas = {
@@ -67,30 +57,106 @@ Para cumplir su misión, Chetes deberá saltar obstáculos, evitar enemigos y re
     </article>
     <img class="escenario" src="images/escenario.webp" alt="Escenario de la aventura"></div>${volver}`,
 
-  ranking: () => {
-    const medallas = ['🥇', '🥈', '🥉'];
-    const lista = [...partidas].sort((a, b) => b.puntuacion - a.puntuacion);
-    return `
-      <h2>🏆 Ranking de jugadores</h2>
-      <p class="texto">¡Los mejores recolectores de quesitos!</p>
-      <div class="grid grid-r">${lista.map((j, i) => `
-        <article class="card">
-          <div class="fila">
-            <span class="medalla">${medallas[i] || (i + 1) + '.'}</span>
-            <span class="jugador">${esc(j.jugador)}</span>
-            <span class="pts">${j.puntuacion} pts</span>
-          </div>
-          <div class="meta">Progreso: ${j.progreso}% · Tiempo: ${mmss(j.tiempo)}</div>
-          <div class="barra"><span style="width:${Number(j.progreso)}%"></span></div>
-        </article>`).join('')}</div>${volver}`;
-  }
+  ranking: () => `
+    <h2>🏆 Ranking de jugadores</h2>
+    <p class="texto">¡Los mejores recolectores de quesitos!</p>
+    <form id="form-partida" class="card form" autocomplete="off">
+      <h3>➕ Registrar partida</h3>
+      <label>Jugador<input id="f-jugador" required maxlength="20"></label>
+      <label>Puntuación<input id="f-puntos" type="number" min="0" max="999999" required></label>
+      <label>Progreso (%)<input id="f-progreso" type="number" min="0" max="100" required></label>
+      <label>Tiempo (segundos)<input id="f-tiempo" type="number" min="0" max="86400" required></label>
+      <button class="btn" type="submit">Guardar partida</button>
+      <p id="estado-red" class="meta"></p>
+    </form>
+    <div id="lista-ranking" class="grid grid-r"></div>`
 };
+
+// ---- Ranking conectado a IndexedDB (CRUD offline) ----
+async function cargarRanking() {
+  const cont = document.getElementById('lista-ranking');
+  if (!cont) return;
+  const lista = (await obtenerPartidas()).sort((a, b) => b.puntuacion - a.puntuacion); // Read
+  if (!lista.length) { cont.innerHTML = '<p class="texto">Aún no hay partidas guardadas.</p>'; return; }
+  const medallas = ['🥇', '🥈', '🥉'];
+  cont.innerHTML = lista.map((j, i) => `
+    <article class="card">
+      <div class="fila">
+        <span class="medalla">${medallas[i] || (i + 1) + '.'}</span>
+        <span class="jugador">${esc(j.jugador)}</span>
+        <span class="pts">${Number(j.puntuacion)} pts</span>
+        <button class="borrar" data-id="${esc(j.id)}" aria-label="Borrar partida de ${esc(j.jugador)}">🗑️</button>
+      </div>
+      <div class="meta">Progreso: ${Number(j.progreso)}% · Tiempo: ${mmss(Number(j.tiempo))}</div>
+      <div class="barra"><span style="width:${Number(j.progreso)}%"></span></div>
+    </article>`).join('');
+}
+
+function actualizarRed() {
+  const el = document.getElementById('estado-red');
+  if (el) el.textContent = navigator.onLine ? '🟢 Con conexión' : '🔴 Sin conexión: las partidas se guardan en este dispositivo';
+}
+window.addEventListener('online', actualizarRed);
+window.addEventListener('offline', actualizarRed);
+
+function iniciarRanking() {
+  cargarRanking();
+  actualizarRed();
+  document.getElementById('form-partida').addEventListener('submit', async e => {
+    e.preventDefault(); // evita recargar la página
+    const partida = {
+      id: Date.now().toString(), // clave primaria única
+      jugador: document.getElementById('f-jugador').value.trim(),
+      puntuacion: Number(document.getElementById('f-puntos').value),
+      progreso: Number(document.getElementById('f-progreso').value),
+      tiempo: Number(document.getElementById('f-tiempo').value),
+      fecha: new Date().toISOString()
+    };
+    if (!partida.jugador) return;
+
+    // 1. Guardamos localmente en el ranking para actualización visual inmediata
+    await guardarPartida(partida);
+    e.target.reset();
+    await cargarRanking();
+
+    // 2. Verificamos soporte de Background Sync y Service Worker
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        // Guardamos en la cola temporal de IndexedDB
+        await guardarPartidaSincronizacion(partida);
+        // Registramos la etiqueta de sincronización
+        await registration.sync.register('sync-nuevas-partidas');
+        console.log('[App] Tarea de Background Sync registrada con éxito.');
+      } catch (error) {
+        console.warn('[App] Error al registrar Sync, intentando envío normal:', error);
+        enviarAlServidor(partida);
+      }
+    } else {
+      // Fallback para navegadores que no soportan SyncManager
+      enviarAlServidor(partida);
+    }
+  });
+
+  document.getElementById('lista-ranking').addEventListener('click', async e => {
+    const boton = e.target.closest('.borrar');
+    if (!boton) return;
+    await eliminarPartida(boton.dataset.id); // Delete
+    await cargarRanking();
+  });
+}
+
+async function enviarAlServidor(partida) {
+  // Simulación de envío a un endpoint backend o Firebase
+  console.log('[API] Enviando partida al servidor en tiempo real:', partida);
+}
 
 function mostrar() {
   const ruta = location.hash.slice(1);
   app.innerHTML = (pantallas[ruta] || pantallas.home)();
   document.querySelectorAll('nav a').forEach(a => a.toggleAttribute('aria-current', a.hash === '#' + (pantallas[ruta] ? ruta : 'home')));
   window.scrollTo(0, 0);
+  if (ruta === 'ranking') iniciarRanking();
 }
 window.addEventListener('hashchange', mostrar);
 mostrar();
